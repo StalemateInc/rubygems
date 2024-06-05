@@ -66,6 +66,56 @@ RSpec.describe "bundle fund" do
     expect(out).to include("None of the installed gems you directly depend on are looking for funding.")
   end
 
+  context 'when only specific gem groups are installed' do
+    before { bundle "config set --local only default" }
+
+    it 'prints message if any of the installed gems have fund information' do
+      install_gemfile <<-G
+      source "#{file_uri_for(gem_repo2)}"
+        gem 'has_funding', group: :development
+        gem 'rack-obama'
+      G
+
+      expect { bundle :fund, raise_on_error: true }.not_to raise_error
+      expect(out).to include("None of the installed gems you directly depend on are looking for funding.")
+    end
+
+    it 'prints message if none of the installed gems have fund information' do
+      install_gemfile <<-G
+      source "#{file_uri_for(gem_repo2)}"
+        gem 'rack-obama', group: :development
+        gem 'has_funding'
+      G
+
+      expect { bundle :fund, raise_on_error: true }.not_to raise_error
+      expect(out).to include("* has_funding (1.2.3)\n  Funding: https://example.com/has_funding/funding")
+    end
+
+    describe "with --group option" do
+      it 'prints message if any of the installed gems from specified group have fund information' do
+        install_gemfile <<-G
+          source "#{file_uri_for(gem_repo2)}"
+            gem 'has_funding', group: :development
+            gem 'rack-obama'
+        G
+
+        expect { bundle "fund --group development", raise_on_error: true }.not_to raise_error
+        expect(out).to include("None of the installed gems you directly depend on are looking for funding.")
+      end
+
+      it 'prints message if none of the installed gems from specified group have fund information' do
+        install_gemfile <<-G
+          source "#{file_uri_for(gem_repo2)}"
+          gem 'rack-obama', group: :development
+          gem 'has_funding'
+        G
+
+        expect { bundle "fund --group development", raise_on_error: true }.not_to raise_error
+        expect(out).to include("None of the installed gems you directly depend on are looking for funding.")
+      end
+    end
+  end
+
   describe "with --group option" do
     it "prints fund message for only specified group gems" do
       install_gemfile <<-G
